@@ -5241,6 +5241,9 @@
     <string name="SaveForNotifications">Save for notifications</string>
     <string name="SoundAdded">Sound added</string>
     <string name="Unmute">Unmute</string>
+    <string name="Join">Join</string>
+    <string name="Share">Share</string>
+    <string name="Report">Report</string>
     <string name="AutoDeleteAfteTitle">Auto-delete after...</string>
     <string name="DeleteTones_one">Delete %d tone</string>
     <string name="DeleteTones_other">Delete %d tones</string>

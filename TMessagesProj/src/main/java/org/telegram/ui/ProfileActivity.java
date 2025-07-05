@@ -83,6 +83,7 @@ import android.util.TypedValue;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -373,6 +374,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private AvatarDrawable avatarDrawable;
     private ImageUpdater imageUpdater;
     private int avatarColor;
+    private LinearLayout headerActionsContainer;
+    //private final int headerActionsBottomMargin = AndroidUtilities.dp(12);
+    private static final int headerActionsBottomMargin = AndroidUtilities.dp(4);
     TimerDrawable autoDeleteItemDrawable;
     private ProfileStoriesView storyView;
     public ProfileGiftsView giftsView;
@@ -1497,6 +1501,191 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
+    private void updateHeaderActionsVisibility() {
+        if (headerActionsContainer == null) return;
+        // expandProgress уже есть в классе: 0 = аватар свёрнут, 1 = развёрнут
+        float p = Math.max(0f, Math.min(1f, (expandProgress - 0.25f) / 0.75f));
+        headerActionsContainer.setAlpha(p);
+    }
+
+    private void addHeaderIconButton(LinearLayout parent,
+                                     int iconRes,
+                                     CharSequence label,
+                                     View.OnClickListener listener) {
+
+        LinearLayout btn = new LinearLayout(parent.getContext());
+        btn.setOrientation(LinearLayout.VERTICAL);
+        btn.setGravity(Gravity.CENTER);
+        btn.setClickable(true);
+        btn.setFocusable(true);
+        btn.setBackground(
+                Theme.createSelectorDrawable(
+                        Theme.getColor(Theme.key_listSelector), 2));
+
+        ImageView iv = new ImageView(parent.getContext());
+        iv.setImageResource(iconRes);
+        btn.addView(iv, new LinearLayout.LayoutParams(
+                AndroidUtilities.dp(28), AndroidUtilities.dp(28)));
+
+        TextView tv = new TextView(parent.getContext());
+        tv.setText(label);
+        tv.setTextColor(Color.WHITE);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        tv.setGravity(Gravity.CENTER);
+        tv.setTextColor(
+                Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        btn.addView(tv);
+
+        btn.setOnClickListener(listener);
+
+        parent.addView(btn,
+                new LinearLayout.LayoutParams(
+                        0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    }
+
+    //private void updateHeaderActionsPosition() {
+    //    if (headerActionsContainer == null || avatarContainer2 == null) return;
+
+    //    // Y-координата ровно под большим квадратным фото
+    //    float y = avatarContainer2.getY() + avatarContainer2.getMeasuredHeight();
+    //    headerActionsContainer.setTranslationY(y);
+
+    //    // progress 0-1: смотри, как задаётся expandProgress в классе
+    //    float progress = expandProgress;   // 0 — свёрнуто, 1 — развёрнуто
+    //    headerActionsContainer.setAlpha(Math.max(0f,
+    //            Math.min(1f, (progress - 0.2f) / 0.8f)));   // начинаем появляться после 0.2
+    //}
+
+    //private void updateHeaderActionsPosition() {
+    //    if (headerActionsContainer == null || avatarImage == null) return;
+
+    //    // нижняя граница большого фото (учитываем все смещения)
+    //    float photoBottom =
+    //            avatarContainer2.getY() +                     // смещение контейнера
+    //                    avatarImage.getY()   +                       // смещение внутри
+    //                    avatarImage.getMeasuredHeight();             // высота фото
+
+    //    // ставим контейнер на photoBottom – его высота – margin
+    //    headerActionsContainer.setTranslationY(
+    //            photoBottom - headerActionsContainer.getMeasuredHeight()
+    //                    - headerActionsBottomMargin);
+
+    //    // плавное появление
+    //    float a = Math.max(0f, Math.min(1f,
+    //            (expandProgress - 0.25f) / 0.75f));          // начинаем с 25 %
+    //    //headerActionsContainer.setAlpha(a);
+    //}
+
+    //private void updateHeaderActionsPosition() {
+    //    if (headerActionsContainer == null) return;
+
+    ///* 1. Когда фото развёрнуто — ставим кнопки внизу квадрата
+    //      (avatarContainer2 = «большое» фото) */
+    //    float photoBottom = avatarContainer2.getY()
+    //            + avatarContainer2.getMeasuredHeight();
+
+    ///* 2. Когда фото свёрнуто — кнопки должны лечь на «синюю шторку»
+    //      (TopView закрывает ActionBar и extraHeight). Нижняя граница
+    //      шторки = extraHeight + actionBar-height (+ statusBar, если есть) */
+    //    float scrimBottom = extraHeight
+    //            + ActionBar.getCurrentActionBarHeight()
+    //            + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0);
+
+    ///* 3. Сглаживаем позицию – плавно перетекаем
+    //      expandProgress = 0 → кнопки на шторке,
+    //      expandProgress = 1 → кнопки у фото                 */
+    //    float y = AndroidUtilities.lerp(
+    //            scrimBottom - headerActionsContainer.getMeasuredHeight() - headerActionsBottomMargin,
+    //            photoBottom - headerActionsContainer.getMeasuredHeight() - headerActionsBottomMargin,
+    //            expandProgress);
+
+    //    headerActionsContainer.setTranslationY(y);
+    //}
+
+    //private void updateHeaderActionsPosition() {
+    //    if (headerActionsContainer == null) return;
+
+    //    // ①  координата низа подписи в развёрнутом состоянии
+    //    float expandedY = nameTextView[1].getY()
+    //            + nameTextView[1].getMeasuredHeight()
+    //            + AndroidUtilities.dp(6);          // небольшой зазор
+
+    //    // ②  то же в свёрнутом
+    //    float collapsedY = nameTextView[0].getY()
+    //            + nameTextView[0].getMeasuredHeight()
+    //            + AndroidUtilities.dp(6);
+
+    //    // ③  плавный переход между двумя точками
+    //    float y = AndroidUtilities.lerp(collapsedY, expandedY, expandProgress);
+
+    //    headerActionsContainer.setTranslationY(y);
+    //}
+    private void updateHeaderActionsPosition() {
+        if (headerActionsContainer == null) return;
+
+        /* нижняя граница фото */
+        float photoBottom = avatarContainer2.getY()
+                + avatarContainer2.getMeasuredHeight();
+
+        /* нижняя граница «синей шторки» */
+        float barBottom = extraHeight
+                + ActionBar.getCurrentActionBarHeight()
+                + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0);
+
+        /* куда ставим контейнер */
+        float yExpanded   = photoBottom - headerActionsContainer.getMeasuredHeight()
+                - headerActionsBottomMargin;
+        float yCollapsed  = barBottom  - headerActionsContainer.getMeasuredHeight()
+                - headerActionsBottomMargin;
+
+        float y = AndroidUtilities.lerp(yCollapsed, yExpanded, expandProgress);
+        headerActionsContainer.setTranslationY(y);
+
+        /* скрывать, когда шторка полностью свернулась */
+        float vis = MathUtils.clamp((expandProgress - .1f) / .9f, 0f, 1f);
+        headerActionsContainer.setAlpha(vis);
+        headerActionsContainer.setVisibility(vis == 0f ? View.GONE : View.VISIBLE);
+    }
+
+    /*  id канала: отрицательный long  */
+    private long getChannelDialogId() { return -chatId; }
+
+    /* JOIN */
+    private void joinChannel() {
+        if (chatId == 0 || currentChat == null || !currentChat.left) return;
+        getMessagesController().addUserToChat(chatId, getUserConfig().getCurrentUser(),
+                0, null, this, true,
+                () -> {                                   // onSuccess
+                    updateRowsIds();
+                    if (listAdapter != null) listAdapter.notifyDataSetChanged();
+                }, err -> false);
+    }
+
+    /* MUTE / UN-MUTE */
+    private void toggleMute() {
+        boolean muted = getMessagesController().isDialogMuted(getChannelDialogId(), 0);
+        getNotificationsController().muteDialog(getChannelDialogId(), 0, !muted);
+        BulletinFactory.createMuteBulletin(this, !muted, null).show();
+    }
+
+    /* SHARE */
+    //private void shareChannelLink() {
+    //    if (currentChat == null || TextUtils.isEmpty(ChatObject.getPublicUsername(currentChat)))
+    //        return;
+    //    String link = "https://" + getMessagesController().linkPrefix + "/"
+    //            + ChatObject.getPublicUsername(currentChat);
+    //    Intent i = new Intent(Intent.ACTION_SEND);
+    //    i.setType("text/plain");
+    //    i.putExtra(Intent.EXTRA_TEXT, link);
+    //    Activity activity = AndroidUtilities.findActivity(context);
+    //    startActivity(Intent.createChooser(i, LocaleController.getString(R.string.Share)));
+    //}
+
+    /* REPORT */
+    private void reportChannel() {
+        ReportBottomSheet.openChat(this, getChannelDialogId());
+    }
     private class NestedFrameLayout extends SizeNotifierFrameLayout implements NestedScrollingParent3 {
 
         private NestedScrollingParentHelper nestedScrollingParentHelper;
@@ -2230,7 +2419,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         searchTransitionProgress = 1f;
         searchMode = false;
         hasOwnBackground = true;
-        extraHeight = AndroidUtilities.dp(88f);
+        extraHeight = AndroidUtilities.dp(150f);
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(final int id) {
@@ -3251,7 +3440,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         };
-
         if (myProfile) {
             bottomButtonsContainer = new FrameLayout(context);
 
@@ -4895,6 +5083,70 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 updateCollectibleHint();
             }
         };
+        if (chatId != 0 && ChatObject.isChannel(currentChat) && !currentChat.megagroup) {
+            //  Контейнер, который ляжет поверх аватара/имени (точнее – сразу под ними)
+            headerActionsContainer = new LinearLayout(context);
+            headerActionsContainer.setOrientation(LinearLayout.HORIZONTAL);
+            headerActionsContainer.setGravity(Gravity.CENTER);
+            headerActionsContainer.setPadding(
+                    AndroidUtilities.dp(4), AndroidUtilities.dp(4),
+                    AndroidUtilities.dp(4), AndroidUtilities.dp(4));
+            final int m = AndroidUtilities.dp(64);
+            // elevation, чтобы было поверх всего
+            if (Build.VERSION.SDK_INT >= 21) {
+                headerActionsContainer.setElevation(AndroidUtilities.dp(6));
+            }
+
+            addHeaderIconButton(headerActionsContainer,
+                    R.drawable.join,
+                    LocaleController.getString("Join", R.string.Join),
+                    v -> joinChannel());  //
+
+            addHeaderIconButton(headerActionsContainer,
+                    R.drawable.unmute,
+                    LocaleController.getString("Unmute", R.string.Unmute),
+                    v -> toggleMute()); //toggleMute()
+
+            addHeaderIconButton(headerActionsContainer,
+                    R.drawable.share,
+                    LocaleController.getString("Share", R.string.Share),
+                    v -> {
+                        if (currentChat == null || TextUtils.isEmpty(ChatObject.getPublicUsername(currentChat)))
+                            return;
+                        String link = "https://" + getMessagesController().linkPrefix + "/"
+                                + ChatObject.getPublicUsername(currentChat);
+                        Intent i = new Intent(Intent.ACTION_SEND);
+                        i.setType("text/plain");
+                        i.putExtra(Intent.EXTRA_TEXT, link);
+                        Activity activity = AndroidUtilities.findActivity(context);
+                        final PackageManager pm = activity.getPackageManager();
+                        final Intent intent = pm.getLaunchIntentForPackage(activity.getPackageName());
+                        activity.finishAffinity();
+                        activity.startActivity(Intent.createChooser(i, LocaleController.getString(R.string.Share)));
+                    }); //shareChannelLink()
+
+            addHeaderIconButton(headerActionsContainer,
+                    R.drawable.report,
+                    LocaleController.getString("Report", R.string.Report),
+                    v -> reportChannel()); //reportChannel()
+
+            //headerActionsContainer.setAlpha(0f);  // появится при expandProgress≈1
+            headerActionsContainer.setPadding(0, 0, 0, AndroidUtilities.dp(4)); //?
+            // кладём в root-FrameLayout; позицию будем обновлять кодом
+            FrameLayout.LayoutParams lp =
+                    new FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT); //, Gravity.TOP
+            //frameLayout.addView(headerActionsContainer, lp);
+            // первую позицию задаём после layout
+            //headerActionsContainer.post(this::updateHeaderActionsPosition);
+            //avatarContainer2.addView(headerActionsContainer, lp);
+
+            frameLayout.addView(headerActionsContainer,            // ← кладём в корневой
+                    new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+            headerActionsContainer.post(this::updateHeaderActionsPosition);
+        }
         fallbackImage = new ImageReceiver(avatarContainer2);
         fallbackImage.setRoundRadius(AndroidUtilities.dp(11));
         AndroidUtilities.updateViewVisibilityAnimated(avatarContainer2, true, 1f, false);
@@ -5298,6 +5550,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         expandAnimator = ValueAnimator.ofFloat(0f, 1f);
         expandAnimator.addUpdateListener(anim -> {
             setAvatarExpandProgress(anim.getAnimatedFraction());
+            //expandProgress = anim.getAnimatedFraction();
+            updateHeaderActionsPosition();
+            //updateHeaderActionsVisibility();
         });
         expandAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
         expandAnimator.addListener(new AnimatorListenerAdapter() {
@@ -7154,6 +7409,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             needLayout(true);
         }
+        if (headerActionsContainer != null) {
+                updateHeaderActionsPosition();
+        }
+        //updateHeaderActionsVisibility();
     }
 
     public void updateSelectedMediaTabText() {
@@ -7325,8 +7584,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
 
-            avatarX = -AndroidUtilities.dpf2(47f) * diff;
-            avatarY = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight() / 2.0f * (1.0f + diff) - 21 * AndroidUtilities.density + 27 * AndroidUtilities.density * diff + actionBar.getTranslationY();
+            avatarX = (float) avatarContainer2.getMeasuredWidth() / 2;// (avatarContainer2.getMeasuredWidth() - avatarImage.getMeasuredWidth() * avatarScale); //-AndroidUtilities.dpf2(47f) * diff; / 1.5f
+            avatarY = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight() / 2.0f * (1.0f + diff) - 21 * AndroidUtilities.density + 1 * AndroidUtilities.density * diff + actionBar.getTranslationY();
 
             float h = openAnimationInProgress ? initialAnimationExtraHeight : extraHeight;
             if (h > AndroidUtilities.dp(88f) || isPulledDown) {
@@ -7564,9 +7823,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     starFgItem.setTranslationX(avatarContainer.getX() + AndroidUtilities.dp(28) + extra);
                     starFgItem.setTranslationY(avatarContainer.getY() + AndroidUtilities.dp(24) + extra);
                 }
-                nameX = -21 * AndroidUtilities.density * diff;
+                nameX = -10 * AndroidUtilities.density * diff; // avatarX + avatarImage.getMeasuredWidth() + dp(12);
                 nameY = (float) Math.floor(avatarY) + AndroidUtilities.dp(1.3f) + AndroidUtilities.dp(7) * diff + titleAnimationsYDiff * (1f - avatarAnimationProgress);
-                onlineX = -21 * AndroidUtilities.density * diff;
+                onlineX = -10 * AndroidUtilities.density * diff;
                 onlineY = (float) Math.floor(avatarY) + AndroidUtilities.dp(24) + (float) Math.floor(11 * AndroidUtilities.density) * diff;
                 if (showStatusButton != null) {
                     showStatusButton.setAlpha((int) (0xFF * diff));
