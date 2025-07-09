@@ -5244,6 +5244,7 @@
     <string name="Join">Join</string>
     <string name="Share">Share</string>
     <string name="Report">Report</string>
+    <string name="Leave">Leave</string>
     <string name="AutoDeleteAfteTitle">Auto-delete after...</string>
     <string name="DeleteTones_one">Delete %d tone</string>
     <string name="DeleteTones_other">Delete %d tones</string>
